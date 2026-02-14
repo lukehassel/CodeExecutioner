@@ -1,6 +1,5 @@
 name: Run GFlow Experiment
 
-# Trigger the workflow on push to main or manually via the Actions tab
 on:
   push:
     branches: [ "main" ]
@@ -14,43 +13,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # 1. Check out the repository code
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # 2. Set up Python 3.10
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: "3.10"
-        cache: 'pip' # Caches dependencies to speed up future runs
+        # REMOVED: cache: 'pip' (This caused the error because you don't have requirements.txt)
 
-    # 3. Install PyTorch and NumPy
-    # We use the CPU-only version of PyTorch to save download time and space on the runner
     - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
         pip install numpy
+        # Install CPU version of PyTorch to be faster
         pip install torch --index-url https://download.pytorch.org/whl/cpu
 
-    # 4. Run the script and capture output
-    # This runs main.py and redirects stdout (print) to 'experiment_results.txt'
     - name: Run GFlow Model
       run: |
-        python main.py > experiment_results.txt
-        cat experiment_results.txt  # Also show output in the Action logs
+        # Ensure main.py exists (assuming you committed it). 
+        # If you haven't committed main.py yet, you must do so.
+        if [ -f main.py ]; then
+            python main.py > experiment_results.txt
+            cat experiment_results.txt
+        else
+            echo "Error: main.py not found in the repository!"
+            exit 1
+        fi
 
-    # 5. Commit and Push the results
     - name: Commit and Push Results
       run: |
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        
-        # Check if the file exists and stage it
         git add experiment_results.txt
-        
-        # Commit changes (if any)
-        # The '|| exit 0' prevents the action from failing if there are no changes to commit
-        git commit -m "Update GFlow experiment results [skip ci]" || exit 0
-        
+        git commit -m "Update experiment results [skip ci]" || echo "No changes to commit"
         git push
